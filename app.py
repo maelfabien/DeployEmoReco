@@ -65,7 +65,7 @@ df = pd.read_csv('static/js/db/histo.txt', sep=",")
 @app.route('/video', methods=['POST'])
 def video() :
     # Display a warning message
-    flash('You will have 45 seconds to discuss the topic mentioned above. Due to restrictions, we are not able to redirect you once the video is over. Please move your URL to /video_dash instead of /video_1 once over. You will be able to see your results then.')
+    flash('You will have 45 seconds to discuss the topic mentioned above. Then, click the button "Get Analysis".')
     return render_template('video.html')
 
 
