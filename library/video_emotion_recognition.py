@@ -29,7 +29,7 @@ def gen():
     """
     
     # Start video capute. 0 = Webcam, 1 = Video file, -1 = Webcam for Web
-    video_capture = cv2.VideoCapture(0)
+    video_capture = cv2.VideoCapture(-1)
     
     # Image shape
     shape_x = 48
