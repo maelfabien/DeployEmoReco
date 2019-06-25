@@ -6,8 +6,7 @@ pandas
 opencv-python
 cmake
 argparse
-_portaudio
-pyaudio
+PyAudio
 scipy
 dlib
 tensorflow
