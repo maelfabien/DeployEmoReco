@@ -6,7 +6,7 @@ pandas
 opencv-python
 cmake
 argparse
-portaudio
+_portaudio
 pyaudio
 scipy
 dlib
