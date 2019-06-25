@@ -16,6 +16,7 @@ import dill
 import pickle
 
 from nltk import *
+nltk.download('all')
 
 from nltk import wordpunct_tokenize, WordNetLemmatizer, sent_tokenize, pos_tag
 from nltk.corpus import stopwords as sw, wordnet as wn
