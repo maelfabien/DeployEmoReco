@@ -208,11 +208,11 @@ def gen():
                 surprise_5.append(prediction[0][5].astype(float))
                 neutral_6.append(prediction[0][6].astype(float))
 
-            # Most likely emotion
-            prediction_result = np.argmax(prediction)
+                # Most likely emotion
+                prediction_result = np.argmax(prediction)
 
-            # Append the emotion to the final list
-            predictions.append(str(prediction_result))
+                # Append the emotion to the final list
+                predictions.append(str(prediction_result))
 
             except :
                 print("Could not predict")

@@ -73,8 +73,10 @@ def video() :
 @app.route('/video_recording', methods=("POST", "GET"))
 def video_recording():
 
-    gen()
-    
+    try :
+        gen()
+    except :
+        print("Not loaded GEN")
     # Send Flash message
     flash("The recording is over! You now have the opportunity to do an analysis of your emotions. If you wish, you can also choose to record yourself again.")
     
