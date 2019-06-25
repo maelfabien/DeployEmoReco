@@ -24,13 +24,16 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras import backend as K
 
 def gen():
+    
     """
     Video streaming generator function.
     """
     
-    # Start video capute. 0 = Webcam, 1 = Video file, -1 = Webcam for Web
-    video_capture = cv2.VideoCapture(-1)
-    
+    try :
+        # Start video capute. 0 = Webcam, 1 = Video file, -1 = Webcam for Web
+        video_capture = cv2.VideoCapture(-1)
+    except :
+        print("No video capture")
     # Image shape
     shape_x = 48
     shape_y = 48
@@ -55,18 +58,21 @@ def gen():
     # Detect facial landmarks and return coordinates (not used in model prediction but in visualization)
     def detect_face(frame):
         
-        #Cascade classifier pre-trained model
-        cascPath = 'models/face_landmarks.dat'
-        faceCascade = cv2.CascadeClassifier(cascPath)
-        
-        #BGR -> Gray conversion
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        #Cascade MultiScale classifier
-        detected_faces = faceCascade.detectMultiScale(gray,scaleFactor=1.1,minNeighbors=6,
-                                                      minSize=(shape_x, shape_y),
-                                                      flags=cv2.CASCADE_SCALE_IMAGE)
-        coord = []
+        try :
+            #Cascade classifier pre-trained model
+            cascPath = 'models/face_landmarks.dat'
+            faceCascade = cv2.CascadeClassifier(cascPath)
+            
+            #BGR -> Gray conversion
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            #Cascade MultiScale classifier
+            detected_faces = faceCascade.detectMultiScale(gray,scaleFactor=1.1,minNeighbors=6,
+                                                          minSize=(shape_x, shape_y),
+                                                          flags=cv2.CASCADE_SCALE_IMAGE)
+            coord = []
+        except :
+            print("Could not load model")
                                                       
         for x, y, w, h in detected_faces :
             if w > 100 :
@@ -115,25 +121,17 @@ def gen():
         
         return new_face
     
-    # Initiate Landmarks
-    (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
-    (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
-    
-    (nStart, nEnd) = face_utils.FACIAL_LANDMARKS_IDXS["nose"]
-    (mStart, mEnd) = face_utils.FACIAL_LANDMARKS_IDXS["mouth"]
-    (jStart, jEnd) = face_utils.FACIAL_LANDMARKS_IDXS["jaw"]
-    
-    (eblStart, eblEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eyebrow"]
-    (ebrStart, ebrEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eyebrow"]
-    
-    # Load the pre-trained X-Ception model
-    model = load_model('models/video.h5')
-    
-    # Load the face detector
-    face_detect = dlib.get_frontal_face_detector()
-    
-    # Load the facial landmarks predictor
-    predictor_landmarks  = dlib.shape_predictor("models/face_landmarks.dat")
+    try :
+        # Load the pre-trained X-Ception model
+        model = load_model('models/video.h5')
+        
+        # Load the face detector
+        face_detect = dlib.get_frontal_face_detector()
+        
+        # Load the facial landmarks predictor
+        predictor_landmarks  = dlib.shape_predictor("models/face_landmarks.dat")
+    except :
+        print("Could not load model")
 
     # Prediction vector
     predictions = []
@@ -158,60 +156,68 @@ def gen():
         k = k+1
         end = time.time()
         
-        # Capture frame-by-frame the video_capture initiated above
-        ret, frame = video_capture.read()
-        
-        # Face index, face by face
-        face_index = 0
-        
-        # Image to gray scale
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # All faces detected
-        rects = face_detect(gray, 1)
+        try :
+            # Capture frame-by-frame the video_capture initiated above
+            ret, frame = video_capture.read()
+            
+            # Face index, face by face
+            face_index = 0
+            
+            # Image to gray scale
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            # All faces detected
+            rects = face_detect(gray, 1)
+        except :
+            print("Could not capture image")
         
         # For each detected face
         for (i, rect) in enumerate(rects):
             
-            # Identify face coordinates
-            (x, y, w, h) = face_utils.rect_to_bb(rect)
-            face = gray[y:y+h,x:x+w]
+            try :
+                # Identify face coordinates
+                (x, y, w, h) = face_utils.rect_to_bb(rect)
+                face = gray[y:y+h,x:x+w]
+                
+                # Identify landmarks and cast to numpy
+                shape = predictor_landmarks(gray, rect)
+                shape = face_utils.shape_to_np(shape)
+                
+                # Zoom on extracted face
+                face = zoom(face, (shape_x / face.shape[0],shape_y / face.shape[1]))
+                
+                # Cast type float
+                face = face.astype(np.float32)
+                
+                # Scale the face
+                face /= float(face.max())
+                face = np.reshape(face.flatten(), (1, 48, 48, 1))
+            except :
+                print("Could not identify face")
+
+            try :
+                # Make Emotion prediction on the face, outputs probabilities
+                prediction = model.predict(face)
             
-            # Identify landmarks and cast to numpy
-            shape = predictor_landmarks(gray, rect)
-            shape = face_utils.shape_to_np(shape)
-            
-            # Zoom on extracted face
-            face = zoom(face, (shape_x / face.shape[0],shape_y / face.shape[1]))
-            
-            # Cast type float
-            face = face.astype(np.float32)
-            
-            # Scale the face
-            face /= float(face.max())
-            face = np.reshape(face.flatten(), (1, 48, 48, 1))
-            
-            # Make Emotion prediction on the face, outputs probabilities
-            prediction = model.predict(face)
-            
-            # For plotting purposes with Altair
-            angry_0.append(prediction[0][0].astype(float))
-            disgust_1.append(prediction[0][1].astype(float))
-            fear_2.append(prediction[0][2].astype(float))
-            happy_3.append(prediction[0][3].astype(float))
-            sad_4.append(prediction[0][4].astype(float))
-            surprise_5.append(prediction[0][5].astype(float))
-            neutral_6.append(prediction[0][6].astype(float))
-            
+                # For plotting purposes with Altair
+                angry_0.append(prediction[0][0].astype(float))
+                disgust_1.append(prediction[0][1].astype(float))
+                fear_2.append(prediction[0][2].astype(float))
+                happy_3.append(prediction[0][3].astype(float))
+                sad_4.append(prediction[0][4].astype(float))
+                surprise_5.append(prediction[0][5].astype(float))
+                neutral_6.append(prediction[0][6].astype(float))
+
             # Most likely emotion
             prediction_result = np.argmax(prediction)
-            
+
             # Append the emotion to the final list
             predictions.append(str(prediction_result))
+
+            except :
+                print("Could not predict")
         
-        # Emotion mapping
-        #emotion = {0:'Angry', 1:'Disgust', 2:'Fear', 3:'Happy', 4:'Neutral', 5:'Sad', 6:'Surprise'}
-        
+
         # Once reaching the end, write the results to the personal file and to the overall file
         if end-start > max_time - 1 :
             with open("static/js/db/histo_perso.txt", "w") as d:
@@ -240,15 +246,3 @@ def gen():
                 d.close()
             K.clear_session()
             break
-
-# Clear session to allow user to do another test afterwards
-#K.clear_session()
-
-
-    # d.write(','.join(str(i) for i in angry_0)+'\n')
-    # d.write(','.join(str(i) for i in disgust_1)+'\n')
-    #d.write(','.join(str(i) for i in fear_2)+'\n')
-    # d.write(','.join(str(i) for i in happy_3)+'\n')
-    #  d.write(','.join(str(i) for i in sad_4)+'\n')
-    #  d.write(','.join(str(i) for i in surprise_5)+'\n')
-#  d.write(','.join(str(i) for i in neutral_6)+'\n')
